@@ -1,8 +1,9 @@
 # backend сервис для тестового задания UDV CAMP
+1. Установить poetry `https://python-poetry.org/docs/#installing-with-the-official-installer`
 
-1. Установка зависимостей `poetry install`
+2. Установка зависимостей `poetry install`
 
-2. Запуск `uvicorn main:app --reload`
+3. Запуск `poetry run uvicorn main:app --reload`
 
 ### Протестировано на:
 
