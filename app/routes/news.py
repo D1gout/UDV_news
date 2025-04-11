@@ -2,50 +2,41 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from typing import List
 
-from app.json_loader import load_json
+from app.crud import get_news_list, get_news_by_id, add_news, delete_news
 
 router = APIRouter(prefix='/news')
 
 
-@router.get("/", response_model=List[dict])
-async def get_news_list():
-    news_data = load_json('news.json')
-    comments_data = load_json('comments.json')
+@router.get("", response_model=List[dict])
+async def app_get_news_list():
+    all_news_data = await get_news_list()
 
-    comments_by_news = {}
-    for comment in comments_data["comments"]:
-        news_id = comment["news_id"]
-        comments_by_news.setdefault(news_id, []).append(comment)
-
-    filtered_news = []
-    for news in news_data["news"]:
-        if not news.get("deleted", False):
-            news_copy = news.copy()
-            news_copy["comments_count"] = len(comments_by_news.get(news["id"], []))
-            filtered_news.append(news_copy)
-
-    return JSONResponse(content={
-        "news": filtered_news,
-        "news_count": len(filtered_news)
-    })
+    return JSONResponse({"all_news_data": all_news_data, 'status': True}, status_code=200)
 
 
-@router.get("/news/{news_id}", response_model=List[dict])
-def get_news_by_id(news_id: int):
-    news_data = load_json(NEWS_FILE)
-    comments_data = load_json(COMMENTS_FILE)
+@router.get("/{news_id}", response_model=List[dict])
+async def app_get_news_by_id(news_id: int):
+    news_data = await get_news_by_id(news_id)
 
-    news_item = next((n for n in news_data["news"] if n["id"] == news_id), None)
+    if not news_data:
+        return JSONResponse({"status": False}, status_code=404)
+    else:
+        return JSONResponse({"news_data": news_data, 'status': True}, status_code=200)
 
-    if not news_item or news_item.get("deleted", False):
-        raise HTTPException(status_code=404, detail="News not found")
 
-    comments = [c for c in comments_data["comments"] if c["news_id"] == news_id]
+# Добавление новости
+@router.post("/add", response_model=List[dict])
+async def app_add_news(news_data: dict):
+    news_id = await add_news(news_data)
 
-    result = {
-        **news_item,
-        "comments": comments,
-        "comments_count": len(comments)
-    }
+    return JSONResponse({"news_id": news_id, "status": True}, status_code=201)
 
-    return JSONResponse(content=result)
+# Удаление новости
+@router.delete("/{news_id}", response_model=List[dict])
+async def app_delete_news(news_id: int):
+    news_id = await delete_news(news_id)
+
+    if not news_id:
+        return JSONResponse({"status": False}, status_code=404)
+    else:
+        return JSONResponse({"news_id": news_id, 'status': True}, status_code=200)
